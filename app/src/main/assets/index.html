@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>الكذّاب</title>
+<style>
+body{margin:0;background:#120c0c;color:#eee;font:18px Tahoma,sans-serif;text-align:center;padding:12px}
+button,input,select{font:inherit;border-radius:10px;border:0;padding:12px 18px;margin:6px;background:#b8860b;color:#fff}
+input,select{background:#2a2020}.red{background:#a31616}
+.card{background:#241a1a;border-radius:14px;padding:12px;margin:10px 0}.big{font-size:32px;color:#f1c40f;margin:8px}
+.dot{display:inline-block;width:26px;height:26px;border-radius:50%;margin:3px;background:#555}.dot.u{background:#111;border:2px solid #777}
+#fl{position:fixed;inset:0;background:red;opacity:0;pointer-events:none;transition:opacity .6s}
+</style></head><body><div id="app"></div><div id="fl"></div><script>
+const q=new URLSearchParams(location.search),H=q.get('host')==='1';
+const me=H?'H':(localStorage.id||(localStorage.id=Math.random().toString(36).slice(2,9)));
+let name=localStorage.n||'',S={phase:'lobby',max:4,players:[]},ws,AC,joined=false;const B={};
+const $=i=>document.getElementById(i),P=i=>S.players.find(p=>p.id==i),N=i=>(P(i)||{}).n;
+const GUN=`<svg viewBox="0 0 400 220" width="100%"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dde2"/><stop offset=".45" stop-color="#6d747c"/><stop offset="1" stop-color="#23282d"/></linearGradient><linearGradient id="w" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5a2b"/><stop offset="1" stop-color="#3b2210"/></linearGradient></defs>
+<path d="M62 98 L116 108 L102 200 Q98 212 84 210 L40 198 Q28 194 32 182Z" fill="url(#w)" stroke="#1a0e05" stroke-width="2"/>
+<rect x="150" y="56" width="236" height="26" rx="5" fill="url(#s)" stroke="#111" stroke-width="2"/>
+<rect x="150" y="48" width="236" height="8" rx="2" fill="url(#s)" stroke="#111"/><path d="M366 48V38H378V48Z" fill="#222"/>
+<path d="M70 60H175V112H130Q112 114 106 126L100 150H66Z" fill="url(#s)" stroke="#111" stroke-width="2"/>
+<rect x="112" y="56" width="68" height="58" rx="10" fill="url(#s)" stroke="#111" stroke-width="2"/>
+<path d="M128 60V110M146 60V110M164 60V110" stroke="#111" stroke-width="3" opacity=".6"/>
+<path d="M70 62L50 42L66 34L88 56Z" fill="#555" stroke="#111" stroke-width="2"/>
+<path d="M122 124Q146 164 176 118" fill="none" stroke="#111" stroke-width="5"/>
+<path d="M146 122Q150 138 158 142" fill="none" stroke="#999" stroke-width="5" stroke-linecap="round"/>
+<path d="M155 60H385" stroke="#fff" stroke-opacity=".5" stroke-width="2"/></svg>`;
+function snd(t){try{AC=AC||new AudioContext();const n=AC.currentTime,bg=t=='bang',d=bg?1:.08,b=AC.createBuffer(1,AC.sampleRate*d,AC.sampleRate),x=b.getChannelData(0);
+for(let i=0;i<x.length;i++)x[i]=(Math.random()*2-1)*Math.pow(1-i/x.length,bg?3:6);
+const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=b;f.type=bg?'lowpass':'highpass';f.frequency.value=bg?1800:2500;g.gain.value=bg?1:.5;s.connect(f);f.connect(g);g.connect(AC.destination);s.start(n);
+if(bg){const o=AC.createOscillator(),og=AC.createGain();o.frequency.setValueAtTime(120,n);o.frequency.exponentialRampToValueAtTime(30,n+.4);og.gain.setValueAtTime(1,n);og.gain.exponentialRampToValueAtTime(.001,n+.5);o.connect(og);og.connect(AC.destination);o.start(n);o.stop(n+.5)}}catch(e){}}
+const send=m=>ws&&ws.readyState==1&&ws.send(JSON.stringify(m)),go=m=>H?act(m):send(m);
+function conn(){ws=new WebSocket('ws://'+location.host);ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.s)apply(m);else if(H&&m.a)act(m)};ws.onclose=()=>setTimeout(conn,1500)}
+function apply(m){S=m.s;if(m.ev){snd(m.ev);if(m.ev=='bang'){$('fl').style.opacity=1;setTimeout(()=>$('fl').style.opacity=0,700);navigator.vibrate&&navigator.vibrate(600)}}draw()}
+function push(ev){const m={s:S,ev:ev||null};send(m);apply(m)}
+function nextAlive(id){const a=S.players,i=a.findIndex(p=>p.id==id);for(let k=1;k<=a.length;k++){const p=a[(i+k)%a.length];if(p.alive)return p.id}}
+function round(st){S.phase='play';S.card=['ملك','ملكة','آس'][Math.random()*3|0];S.turn=st;S.last=null}
+function act(m){
+ if(m.a=='join'){if(!P(m.id)&&S.phase=='lobby'&&S.players.length<S.max)S.players.push({id:m.id,n:m.n,alive:true,k:0});push()}
+ else if(m.a=='start'&&S.phase=='lobby'&&S.players.length>1){S.players.forEach(p=>{B[p.id]=Math.random()*6|0;p.k=0;p.alive=true});round(S.players[0].id);push()}
+ else if(m.a=='play'&&S.phase=='play'&&S.turn==m.id){S.last=m.id;S.turn=nextAlive(m.id);push()}
+ else if(m.a=='liar'&&S.phase=='play'&&S.turn==m.id&&S.last){S.phase='judge';S.caller=m.id;S.target=S.last;push()}
+ else if(m.a=='lose'&&S.phase=='judge'&&(m.by==S.caller||m.by=='H')){S.phase='roulette';S.victim=m.v;push()}
+ else if(m.a=='pull'&&S.phase=='roulette'&&m.id==S.victim){const p=P(m.id),d=p.k==B[p.id];p.k++;p.alive=!d;S.phase='result';S.res=d?'dead':'safe';push(d?'bang':'click')}
+ else if(m.a=='next'&&S.phase=='result'&&(m.by==S.victim||m.by=='H')){const al=S.players.filter(p=>p.alive);if(al.length<2){S.phase='over';S.winner=al[0]&&al[0].n}else round(P(S.victim).alive?S.victim:nextAlive(S.victim));push()}
+ else if(m.a=='new'&&S.phase=='play'&&m.by=='H'){round(S.turn);push()}
+}
+function join(){name=$('nm').value.trim()||'لاعب';localStorage.n=name;joined=true;snd('click');if(H){S.max=+$('mx').value;act({a:'join',id:me,n:name})}else go({a:'join',id:me,n:name});draw()}
+function chambers(p){const r=6-p.k;return '<div>'+[0,1,2,3,4,5].map(i=>`<span class="dot${i<p.k?' u':''}"></span>`).join('')+`</div><div>🔫 الطلقات: <b>1</b> | الخانات المتبقية: <b>${r}</b> | الخطر القادم: <b>1/${r}</b></div>`}
+function draw(){
+ let h='<h2>🔫 الكذّاب</h2>';const p=P(me),ph=S.phase;
+ const L=S.players.map(x=>`<div>${x.alive?'🟢':'💀'} ${x.n}${x.id==S.turn&&ph=='play'?' ◀':''} <small>(سُحب ${x.k}/6)</small></div>`).join('');
+ if(!joined){h+=`<input id="nm" placeholder="اسمك" value="${name}">`+(H?`<div>أقصى عدد للاعبين <select id="mx">${[2,3,4,5,6,7,8].map(i=>`<option ${i==S.max?'selected':''}>${i}</option>`).join('')}</select></div>`:'')+`<button onclick="join()">${H?'فتح الغرفة':'انضمام'}</button>`}
+ else if(!p)h+='<div class="card">الغرفة ممتلئة أو اللعبة بدأت</div>';
+ else if(ph=='lobby'){h+=(H?`<div class="card">ليفتح الضيوف في المتصفح:<div class="big" dir="ltr">http://${q.get('ip')}:8080</div></div>`:'')+`<div class="card">اللاعبون ${S.players.length}/${S.max}${L}</div>`+(H?`<button onclick="go({a:'start'})">ابدأ اللعبة</button>`:'<div>بانتظار المضيف…</div>')}
+ else{
+  h+=`<div class="card">${L}</div>`;
+  if(ph=='play'){h+=`<div class="card">الورقة المطلوبة<div class="big">${S.card}</div></div>`;
+   if(!p.alive)h+='<div>💀 أنت خارج اللعبة</div>';
+   else if(S.turn==me)h+='<div>دورك!</div>'+(S.last?`<button class="red" onclick="go({a:'liar',id:me})">كذّاب!</button>`:'')+`<button onclick="go({a:'play',id:me})">وضعتُ أوراقي</button>`;
+   else h+=`<div>الدور على ${N(S.turn)}</div>`;
+   if(H)h+=`<button onclick="go({a:'new',by:me})">جولة جديدة</button>`}
+  if(ph=='judge'){h+=`<div class="card">${N(S.caller)} قال «كذّاب!» على ${N(S.target)}<br>اكشفوا الأوراق على الطاولة</div>`;
+   if(me==S.caller||H)h+=`<div>من الخاسر؟</div><button onclick="go({a:'lose',v:'${S.target}',by:me})">${N(S.target)} كان كاذباً</button><button onclick="go({a:'lose',v:'${S.caller}',by:me})">${N(S.caller)} أخطأ</button>`}
+  if(ph=='roulette'||ph=='result'){const v=P(S.victim);h+=`<div class="card">🎯 ${v.n} يلعب الروليت</div>${GUN}${chambers(v)}`;
+   if(ph=='roulette'&&me==S.victim)h+=`<button class="red" onclick="go({a:'pull',id:me})">اسحب الزناد</button>`;
+   if(ph=='result')h+=`<div class="big">${S.res=='dead'?'💥 مات '+v.n:'✔ نجا '+v.n}</div>`+((me==S.victim||H)?`<button onclick="go({a:'next',by:me})">متابعة</button>`:'')}
+  if(ph=='over')h+=`<div class="big">🏆 الفائز: ${S.winner}</div>`}
+ $('app').innerHTML=h}
+conn();draw();
+</script></body></html>
