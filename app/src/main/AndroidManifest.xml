@@ -2,6 +2,9 @@
 <uses-permission android:name="android.permission.INTERNET"/>
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 <uses-permission android:name="android.permission.VIBRATE"/>
-<application android:label="الكذّاب" android:usesCleartextTraffic="true" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+<application android:label="الكذّاب" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:usesCleartextTraffic="true" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
+<service android:name=".GameServerService" android:exported="false" android:foregroundServiceType="dataSync"/>
 </application></manifest>
