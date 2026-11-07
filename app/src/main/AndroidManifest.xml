@@ -9,5 +9,6 @@
 <application android:label="الكذّاب" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:usesCleartextTraffic="true" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask" android:configChanges="orientation|screenSize|keyboardHidden"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
 <intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="liar" android:host="join"/></intent-filter></activity>
+<activity android:name=".PortraitCaptureActivity" android:exported="false" android:screenOrientation="portrait" android:stateNotNeeded="true" android:theme="@style/zxing_CaptureTheme" android:windowSoftInputMode="stateAlwaysHidden"/>
 <service android:name=".GameServerService" android:exported="false" android:foregroundServiceType="dataSync"/>
 </application></manifest>

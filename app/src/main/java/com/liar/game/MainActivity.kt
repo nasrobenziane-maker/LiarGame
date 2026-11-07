@@ -132,7 +132,8 @@ class MainActivity : AppCompatActivity() {
             .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
             .setPrompt("وجّه الكاميرا نحو رمز QR الخاص بالمضيف")
             .setBeepEnabled(false)
-            .setOrientationLocked(true)
+            .setOrientationLocked(false)
+            .setCaptureActivity(PortraitCaptureActivity::class.java)
         scanLauncher.launch(options)
     }
 
@@ -199,6 +200,7 @@ class MainActivity : AppCompatActivity() {
         w.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val u = request.url
+                if (u.scheme == "liar" && u.host == "home") { view.post { showStart() }; return true }
                 val p = if (u.port == -1) 80 else u.port
                 return !(u.host == host && p == port)
             }
@@ -230,7 +232,7 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
         }
-        w.addJavascriptInterface(QrBridge("http://$ip:8080"), "AndroidBridge")
+        w.addJavascriptInterface(QrBridge("http://$ip:8080") { runOnUiThread { stopHost() } }, "AndroidBridge")
         // WebSocket and page serving are kept alive by the foreground service.
         val serviceIntent = Intent(this, GameServerService::class.java).putExtra("page", page)
         if (Build.VERSION.SDK_INT >= 26) startForegroundService(serviceIntent) else startService(serviceIntent)
@@ -248,13 +250,19 @@ class MainActivity : AppCompatActivity() {
         w.loadUrl(hostUrl)
     }
 
+    // يوقف الخادم والإشعار الدائم ويغلق التطبيق ويعود إلى واجهة الهاتف.
+    private fun stopHost() {
+        stopService(Intent(this, GameServerService::class.java))
+        finishAndRemoveTask()
+    }
+
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         gameView?.requestLayout()
     }
 }
 
-class QrBridge(private val url: String) {
+class QrBridge(private val url: String, private val onStop: () -> Unit = {}) {
     private fun qr(data: String): String = try {
         val matrix = MultiFormatWriter().encode(data, BarcodeFormat.QR_CODE, 420, 420,
             mapOf(EncodeHintType.MARGIN to 1))
@@ -265,6 +273,7 @@ class QrBridge(private val url: String) {
     } catch (_: Exception) { "" }
     @JavascriptInterface fun getQrDataUrl(): String = qr(url)
     @JavascriptInterface fun getApkQrDataUrl(): String = qr("$url/app.apk")
+    @JavascriptInterface fun stopGame() { onStop() }
 }
 
 class GameServerService : Service() {
@@ -346,6 +355,12 @@ class Relay(port: Int, private val page: String, private val context: Context) :
                         playerId = id
                     }
                     if (action != "sync") {
+                        // إعادة اتصال: نتبنّى معرّف اللاعب إن لم يستعمله اتصال آخر، وإلا كانت أزرار اللاعب تُهمَل بصمت.
+                        if (playerId == null && action != "join" && action != "spectate") {
+                            val claim = data.optString("id").ifEmpty { data.optString("by") }
+                            if (claim.matches(Regex("[a-zA-Z0-9_-]{1,64}")) && claim != "H" &&
+                                socks.none { it !== this && it.playerId == claim }) playerId = claim
+                        }
                         val id = playerId ?: return
                         if (data.has("id") && data.optString("id") != id) return
                         if (data.has("by") && data.optString("by") != id) return
