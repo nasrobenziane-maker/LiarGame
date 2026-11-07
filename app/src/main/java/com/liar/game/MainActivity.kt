@@ -334,11 +334,20 @@ class Relay(port: Int, private val page: String, private val context: Context) :
             if (m.textPayload.length > 65536) return
             try {
                 val data = JSONObject(m.textPayload)
+                if (host && data.has("priv")) {
+                    val packet = data.optJSONObject("priv") ?: return
+                    val recipient = packet.optString("to")
+                    if (recipient.isEmpty() || !packet.has("hand")) return
+                    socks.filter { it !== this && it.playerId == recipient }.forEach {
+                        try { it.send(data.toString()) } catch (_: IOException) {}
+                    }
+                    return
+                }
                 if (!host) {
-                    if (data.has("s") || data.has("rej")) return
+                    if (data.has("s") || data.has("rej") || data.has("priv")) return
                     val action = data.optString("a")
                     if (action !in setOf("sync", "join", "spectate", "promote", "play", "liar", "setGun", "armPull", "cancelPull", "next", "swap", "stormPick", "stormShot")) return
-                    if (action in setOf("join", "spectate")) {
+                    if (action in setOf("join", "spectate", "sync")) {
                         val id = data.optString("id")
                         if (!id.matches(Regex("[a-zA-Z0-9_-]{1,64}")) || id == "H") return
                         if (socks.any { it !== this && it.playerId == id }) return
