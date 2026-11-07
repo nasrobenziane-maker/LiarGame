@@ -299,7 +299,7 @@ class Relay(port: Int, private val page: String, private val context: Context) :
     private val socks = CopyOnWriteArrayList<WS>()
     private val allowedMedia = setOf(
         "broken_butterfly.svg", "broken_butterfly_trigger.svg", "weapon_reference.webp",
-        "cards/king.webp", "cards/queen.webp", "cards/ace.webp", "cards/joker.webp", "cards/back.webp", "cards/change.webp", "cards/storm.webp", "logo.svg", "logo-base.png", "gunshot.mp3"
+        "cards/king.webp", "cards/queen.webp", "cards/ace.webp", "cards/joker.webp", "cards/back.webp", "cards/change.webp", "cards/storm.webp", "logo.svg", "logo-base.png", "emblem.webp", "gunshot.mp3"
     )
     override fun serveHttp(session: IHTTPSession): Response {
         val path = session.uri.substringBefore('?').removePrefix("/")
